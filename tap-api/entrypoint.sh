@@ -28,22 +28,20 @@ if [ $? -ne 0 ]; then
 fi
 echo "JSONL files uploaded successfully."
 
-echo "Creating file list files for transform jsonl to delta..."
-find ./output/ -name '*.jsonl' > files_upload.txt
-echo "File list created: files_upload.txt"
+echo "Running a single Databricks job to transform all JSONL files to Delta format..."
+databricks jobs run-now --json '{
+    "job_id": "'"$DATABRICKS_JOB_ID"'",
+    "notebook_params": {
+        "folder_volume": "'"$DATABRICKS_FOLDER"'",
+        "catalog": "'"$DATABRICKS_CATALOG"'",
+        "schema": "'"$DATABRICKS_SCHEMA"'"
+    }
+}'
 
-echo "Running Databricks job to transform JSONL files to Delta format..."
-for line in $(cat "files_upload.txt"); do
-    echo "Processing file: $line"
-    databricks jobs run-now --json '{
-        "job_id": '"$DATABRICKS_JOB_ID"',
-            "notebook_params": {
-                "file_jsonl": "'"$line"'",
-                "folder_volume": "'"$DATABRICKS_FOLDER"'",
-                "catalog": "'"$DATABRICKS_CATALOG"'",
-                "schema": "'"$DATABRICKS_SCHEMA"'"
-                }
-            }'
+# Verifica se a execução do job falhou
+if [ $? -ne 0 ]; then
+    echo "Error running the Databricks job"
+    exit 1
+fi
 
-done
 echo "Databricks job completed successfully."
