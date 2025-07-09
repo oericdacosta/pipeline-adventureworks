@@ -11,13 +11,13 @@ plugins:
     variant: buzzcutnorman
     pip_url: git+https://github.com/BuzzCutNorman/tap-mssql.git
     config:
+      # Este será o comportamento para TODAS as tabelas.
       default_replication_method: FULL_TABLE
-    # A 'mágica' acontece aqui. Em vez de herdar, selecionamos
-    # todas as tabelas desejadas dentro de uma única definição.
+      
+    # Seleciona TODAS as tabelas de TODOS os schemas. Sem manutenção necessária.
     select:
-      # Use esta sintaxe de curinga para extrair TODAS as tabelas
-      # de TODOS os schemas. Simples e não precisa de manutenção!
       - "*.*"
+
 
   loaders:
   - name: target-parquet
