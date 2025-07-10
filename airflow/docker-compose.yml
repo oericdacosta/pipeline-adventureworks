@@ -1,6 +1,6 @@
+# /pipeline-adventureworks/airflow/docker-compose.yml (Versão Final e Corrigida)
 services:
   postgres-db:
-    # ... (sem alterações aqui)
     image: postgres:15
     container_name: airflow_postgres
     restart: always
@@ -11,21 +11,36 @@ services:
     volumes:
       - airflow-db-data:/var/lib/postgresql/data
 
+  # Este serviço roda uma única vez para preparar tudo automaticamente.
   airflow-init:
-    # ...
     image: apache/airflow:2.8.0-python3.11
     container_name: airflow_init
     depends_on:
       - postgres-db
+    env_file:
+      - .env # Lê nosso arquivo .env
     environment:
+      # Conecta ao banco de dados correto
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres-db:5432/airflow
-      # Adicionando a chave secreta aqui
+      # Usa a chave secreta do .env
       - AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW__WEBSERVER__SECRET_KEY}
     command: >
-      bash -c "airflow db migrate && airflow users create --username ${AIRFLOW_ADMIN_USER:-admin} --firstname Admin --lastname User --role Admin --email admin@example.com -p ${AIRFLOW_ADMIN_PASSWORD:-admin}"
+      bash -c "
+        airflow db migrate &&
+        airflow users create --username ${AIRFLOW_ADMIN_USER} --firstname Admin --lastname User --role Admin --email admin@example.com -p ${AIRFLOW_ADMIN_PASSWORD} || true &&
+        echo 'Importando variáveis do .env para o Airflow...' &&
+        airflow variables set DATABRICKS_HOST \"${DATABRICKS_HOST}\" &&
+        airflow variables set DATABRICKS_CATALOG \"${DATABRICKS_CATALOG}\" &&
+        airflow variables set DATABRICKS_SCHEMA \"${DATABRICKS_SCHEMA}\" &&
+        airflow variables set DATABRICKS_VOLUME_RAW \"${DATABRICKS_VOLUME_RAW}\" &&
+        airflow variables set DATABRICKS_FOLDER \"${DATABRICKS_FOLDER}\" &&
+        airflow variables set DATABRICKS_JOB_ID \"${DATABRICKS_JOB_ID}\" &&
+        airflow variables set API_USERNAME \"${API_USERNAME}\" &&
+        airflow variables set API_PASSWORD \"${API_PASSWORD}\" &&
+        airflow variables set DATABRICKS_TOKEN \"${DATABRICKS_TOKEN}\"
+      "
 
   airflow-webserver:
-    # ...
     image: apache/airflow:2.8.0-python3.11
     container_name: airflow_webserver
     restart: always
@@ -35,17 +50,19 @@ services:
       - "8080:8080"
     volumes:
       - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
       - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - .env
     environment:
       - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres-db:5432/airflow
-      # Adicionando a chave secreta aqui
       - AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW__WEBSERVER__SECRET_KEY}
     command: webserver
 
   airflow-scheduler:
-    # ...
     image: apache/airflow:2.8.0-python3.11
     container_name: airflow_scheduler
     restart: always
@@ -53,12 +70,16 @@ services:
       - airflow-init
     volumes:
       - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      # CORREÇÃO: Adicionando o mapeamento do docker.sock que faltava
       - /var/run/docker.sock:/var/run/docker.sock
+    env_file:
+      - .env
     environment:
       - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
       - AIRFLOW__CORE__LOAD_EXAMPLES=False
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres-db:5432/airflow
-      # Adicionando a chave secreta aqui
       - AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW__WEBSERVER__SECRET_KEY}
     command: scheduler
 
