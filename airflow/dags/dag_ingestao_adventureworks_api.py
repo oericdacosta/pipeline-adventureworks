@@ -34,12 +34,12 @@ with DAG(
             "DATABRICKS_VOLUME_RAW": "{{ var.value.DATABRICKS_VOLUME_RAW }}",
             "DATABRICKS_FOLDER":     "{{ var.value.DATABRICKS_FOLDER }}",
             "DATABRICKS_JOB_ID":     "{{ var.value.DATABRICKS_JOB_ID }}",
-            
+
             # --- MUDANÇA AQUI ---
             # Adicionamos as credenciais da API que estavam faltando
             "API_USERNAME":          "{{ var.value.API_USERNAME }}",
             "API_PASSWORD":          "{{ var.value.API_PASSWORD }}",
-            
+
             # Data de execução
             "EXECUTION_DATE":        "{{ ds }}",
         },
