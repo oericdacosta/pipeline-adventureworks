@@ -14,4 +14,4 @@ COPY . .
 RUN meltano lock --update --all && \
     meltano install
 
-ENTRYPOINT [ "./entrypoint.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
